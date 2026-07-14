@@ -27,7 +27,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(morgan('dev'));
 
 // ── Rotas ─────────────────────────────────────────────────
-app.use('/api/auth',           require('./src/routes/auth'));
+app.use('/api/auth',           require('./src/routes/authRoutes'));
 app.use('/api/learning-paths', require('./src/routes/learningPaths'));
 app.use('/api/diagnostic',     require('./src/routes/diagnostic'));
 app.use('/api/study-plan',     require('./src/routes/studyPlan'));

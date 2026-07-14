@@ -1,8 +1,8 @@
 import React from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { AuthProvider } from './context/AuthContext'
-import ProtectedRoute   from './components/common/ProtectedRoute'
-import Layout           from './components/common/Layout'
+import { AuthProvider } from './contexts/AuthContext'
+import ProtectedRoute   from './components/ProtectedRoute'
+import Layout           from './components/Layout'
 
 import LoginPage              from './pages/LoginPage'
 import RegisterPage           from './pages/RegisterPage'
