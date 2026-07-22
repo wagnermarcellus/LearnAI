@@ -13,7 +13,7 @@ export default function StudyPlanPage() {
   useEffect(() => {
     Promise.all([
       api.get('/study-plan').then(r => setPlans(r.data.data || [])),
-      api.get('/learning-paths/my-enrollments').then(r => setPaths(r.data.data || [])),
+      api.get('/plans/my-enrollments').then(r => setPaths(r.data.data || [])),
     ]).finally(() => setLoading(false))
   }, [])
 

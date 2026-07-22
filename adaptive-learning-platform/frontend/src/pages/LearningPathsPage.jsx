@@ -39,7 +39,7 @@ export default function LearningPathsPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    api.get('/learning-paths')
+    api.get('/plans')
       .then(r => setPaths(r.data.data || []))
       .finally(() => setLoading(false))
   }, [])

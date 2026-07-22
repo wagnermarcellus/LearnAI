@@ -63,12 +63,15 @@ exports.generateTest = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-exports.submitAnswers = async (req, res, next) => {
+exports.submitAnswers = async (req, res, next, testType = 'diagnostic') => {
   try {
-    const { test_id, answers } = req.body;
+    const { answers } = req.body;
+    const { id: learning_path_id } = req.params;
     const userId = req.user.id;
 
-    const test = await DiagnosticTest.findOne({ _id: test_id, user_id: userId, status: 'pending' });
+    const test = await DiagnosticTest.findOne({
+      user_id: userId, learning_path_id, type: testType, status: 'pending',
+    }).sort({ created_at: -1 });
     if (!test) return error(res, 'Teste não encontrado ou já respondido', 404);
 
     const questionsMap = {};
@@ -143,7 +146,7 @@ exports.submitAnswers = async (req, res, next) => {
       level,
       analysis,
       xp_gained: xpGained,
-      test_id,
+      test_id: test.id,
     });
   } catch (err) { next(err); }
 };

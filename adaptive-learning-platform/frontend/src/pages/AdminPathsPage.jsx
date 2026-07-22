@@ -13,7 +13,7 @@ export default function AdminPathsPage() {
   const [okMsg,   setOkMsg]   = useState('')
 
   useEffect(() => {
-    api.get('/learning-paths')
+    api.get('/plans')
       .then(r => setPaths(r.data.data || []))
       .finally(() => setLoading(false))
   }, [])
@@ -46,7 +46,7 @@ export default function AdminPathsPage() {
     e.preventDefault()
     setSaving(true); setErrMsg(''); setOkMsg('')
     try {
-      const res = await api.post('/learning-paths', {
+      const res = await api.post('/plans', {
         title:       form.title,
         description: form.description,
         topics:      form.topics.filter(t => t.title.trim()),

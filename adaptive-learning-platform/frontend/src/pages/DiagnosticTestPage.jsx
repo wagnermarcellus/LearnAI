@@ -16,7 +16,7 @@ export default function DiagnosticTestPage() {
   const [errMsg,     setErrMsg]     = useState('')
 
   useEffect(() => {
-    api.post('/diagnostic/generate', { learning_path_id: pathId })
+    api.post('/plans/diagnostic', { learning_path_id: pathId })
       .then(r => { setTest(r.data.data.test); setQuestions(r.data.data.questions) })
       .catch(err => setErrMsg(err.response?.data?.message || 'Erro ao gerar avaliação'))
       .finally(() => setLoading(false))
@@ -36,7 +36,7 @@ export default function DiagnosticTestPage() {
         question_id,
         selected_option,
       }))
-      await api.post('/diagnostic/submit', { test_id: test.id, answers: answersArray })
+      await api.post(`/plans/diagnostic/${pathId}/diagnostic/submit`, { answers: answersArray })
       navigate(`/diagnostic/${test.id}/result`)
     } catch (err) {
       setErrMsg(err.response?.data?.message || 'Erro ao enviar respostas')

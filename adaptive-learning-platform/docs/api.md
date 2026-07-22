@@ -69,21 +69,23 @@ Retorna os dados do usuário autenticado pelo token.
 
 ---
 
-## Trilhas de Aprendizagem
+## Planos de Ensino (Trilhas de Aprendizagem)
 
-### GET /learning-paths 🔒
+> Todas as rotas de planos e avaliações vivem sob o prefixo `/plans`.
 
-Lista todas as trilhas ativas com contagem de tópicos e inscritos.
+### GET /plans 🔒
 
-### GET /learning-paths/my-enrollments 🔒 (student)
+Lista todos os planos de ensino ativos com contagem de tópicos e inscritos.
 
-Retorna as trilhas em que o aluno autenticado está inscrito.
+### GET /plans/my-enrollments 🔒 (student)
 
-### GET /learning-paths/:id 🔒
+Retorna os planos em que o aluno autenticado está inscrito.
 
-Retorna os detalhes de uma trilha, incluindo tópicos e habilidades. Para alunos, inclui o campo `is_enrolled`.
+### GET /plans/:id 🔒
 
-### POST /learning-paths 🔒 (admin)
+Retorna os detalhes de um plano, incluindo tópicos e habilidades. Para alunos, inclui o campo `is_enrolled`.
+
+### POST /plans 🔒 (admin)
 
 **Body:**
 ```json
@@ -104,19 +106,27 @@ Retorna os detalhes de uma trilha, incluindo tópicos e habilidades. Para alunos
 }
 ```
 
-**Resposta 201:** dados da trilha criada.
+**Resposta 201:** dados do plano criado.
 
-### POST /learning-paths/:id/enroll 🔒 (student)
+### POST /plans/:id/enroll 🔒 (student)
 
-Inscreve o aluno na trilha. Operação idempotente.
+Inscreve o aluno no plano (`:id` = id do plano). Operação idempotente.
 
 ---
 
-## Avaliação Diagnóstica
+## Avaliações Diagnósticas e de Progresso
 
-### POST /diagnostic/generate 🔒 (student)
+### GET /plans/diagnostic 🔒
 
-Gera uma avaliação diagnóstica com 10 questões via IA. O aluno deve estar inscrito na trilha.
+Lista todas as avaliações (diagnósticas e de progresso) do aluno autenticado.
+
+### GET /plans/diagnostic/:id 🔒
+
+Retorna o resultado completo de uma avaliação (`:id` = id da própria avaliação), incluindo gabarito e explicações.
+
+### POST /plans/diagnostic 🔒 (student)
+
+Gera uma avaliação diagnóstica com 10 questões via IA. O aluno deve estar inscrito no plano.
 
 **Body:**
 ```json
@@ -148,14 +158,21 @@ Gera uma avaliação diagnóstica com 10 questões via IA. O aluno deve estar in
 
 > O campo `correct_option` não é retornado ao aluno.
 
-### POST /diagnostic/submit 🔒 (student)
+### POST /plans/diagnostic/:id/progress 🔒 (student)
 
-Submete as respostas e recebe o resultado com análise pedagógica gerada pela IA.
+Solicita uma avaliação de progresso com dificuldade adaptativa (`:id` = id do plano). Requer uma
+avaliação diagnóstica concluída nesse plano.
+
+**Resposta 201:** mesmo formato de `POST /plans/diagnostic`, com `test.type = "progress"`.
+
+### POST /plans/diagnostic/:id/diagnostic/submit 🔒 (student)
+
+Submete as respostas da avaliação **diagnóstica** pendente do plano `:id` e recebe o resultado com
+análise pedagógica gerada pela IA.
 
 **Body:**
 ```json
 {
-  "test_id": "objectId",
   "answers": [
     { "question_id": "objectId", "selected_option": "B" }
   ]
@@ -183,13 +200,10 @@ Submete as respostas e recebe o resultado com análise pedagógica gerada pela I
 }
 ```
 
-### GET /diagnostic/my-tests 🔒
+### POST /plans/diagnostic/:id/progress/submit 🔒 (student)
 
-Lista todas as avaliações do aluno autenticado.
-
-### GET /diagnostic/:id/result 🔒
-
-Retorna o resultado completo de uma avaliação, incluindo gabarito e explicações.
+Igual à rota acima, mas submete a avaliação de **progresso** pendente do plano `:id`. Mesmo formato
+de body e resposta.
 
 ---
 
@@ -251,16 +265,8 @@ Retorna o histórico de chat. Query params: `?learning_path_id=objectId&limit=50
 
 Retorna uma visão geral do aluno: XP, nível, avaliações, inscrições, badges e eventos de XP.
 
-### POST /progress/test 🔒 (student)
-
-Solicita uma avaliação de progresso com dificuldade adaptativa.
-
-**Body:**
-```json
-{ "learning_path_id": "objectId" }
-```
-
-**Resposta 201:** nova avaliação gerada com questões adaptadas ao desempenho anterior.
+> Solicitar uma nova avaliação de progresso agora é feito em `POST /plans/diagnostic/:id/progress`
+> (veja a seção "Avaliações Diagnósticas e de Progresso" acima).
 
 ---
 

@@ -57,7 +57,7 @@ export default function AITutorPage() {
   const bottomRef = useRef(null)
 
   useEffect(() => {
-    api.get('/learning-paths/my-enrollments')
+    api.get('/plans/my-enrollments')
       .then(r => setPaths(r.data.data || []))
       .catch(() => {})
   }, [])

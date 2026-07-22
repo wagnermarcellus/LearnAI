@@ -49,7 +49,7 @@ exports.getOverview = async (req, res, next) => {
 
 exports.requestProgressTest = async (req, res, next) => {
   try {
-    const { learning_path_id } = req.body;
+    const learning_path_id = req.params.id || req.body.learning_path_id;
     const userId = req.user.id;
 
     const lastTest = await DiagnosticTest.findOne({

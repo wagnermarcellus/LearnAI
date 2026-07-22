@@ -16,7 +16,7 @@ export default function DiagnosticResultPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    api.get(`/diagnostic/${testId}/result`)
+    api.get(`/plans/diagnostic/${testId}`)
       .then(r => setData(r.data.data))
       .finally(() => setLoading(false))
   }, [testId])

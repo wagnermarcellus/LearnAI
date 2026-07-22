@@ -25,12 +25,11 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan('dev'));
 
-app.use('/api/auth',           require('./routes/auth'));
-app.use('/api/learning-paths', require('./routes/learningPaths'));
-app.use('/api/diagnostic',     require('./routes/diagnostic'));
-app.use('/api/study-plan',     require('./routes/studyPlan'));
-app.use('/api/ai',             require('./routes/aiTutor'));
-app.use('/api/progress',       require('./routes/progress'));
+app.use('/api/auth',       require('./routes/auth'));
+app.use('/api/plans',      require('./routes/plans'));
+app.use('/api/study-plan', require('./routes/studyPlan'));
+app.use('/api/ai',         require('./routes/aiTutor'));
+app.use('/api/progress',   require('./routes/progress'));
 
 app.get('/api/health', (_req, res) =>
   res.json({ status: 'ok', timestamp: new Date().toISOString() })

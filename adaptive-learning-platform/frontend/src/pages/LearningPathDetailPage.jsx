@@ -13,7 +13,7 @@ export default function LearningPathDetailPage() {
   const [errMsg,    setErrMsg]    = useState('')
 
   useEffect(() => {
-    api.get(`/learning-paths/${id}`)
+    api.get(`/plans/${id}`)
       .then(r => setPath(r.data.data))
       .finally(() => setLoading(false))
   }, [id])
@@ -21,7 +21,7 @@ export default function LearningPathDetailPage() {
   const handleEnroll = async () => {
     setEnrolling(true); setErrMsg('')
     try {
-      await api.post(`/learning-paths/${id}/enroll`)
+      await api.post(`/plans/${id}/enroll`)
       setPath(prev => ({ ...prev, is_enrolled: true }))
     } catch (err) {
       setErrMsg(err.response?.data?.message || 'Erro ao se inscrever')

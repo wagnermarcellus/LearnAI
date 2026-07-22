@@ -22,7 +22,7 @@ export default function ProgressPage() {
     if (!pathId) return
     setRequesting(true)
     try {
-      const res = await api.post('/progress/test', { learning_path_id: pathId })
+      const res = await api.post(`/plans/diagnostic/${pathId}/progress`)
       if (res.data.data?.test?.id) {
         navigate(`/diagnostic/${res.data.data.test.id}/result`)
       }

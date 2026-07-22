@@ -46,8 +46,7 @@ adaptive-learning-platform/
 │       │   └── progressController.js
 │       ├── routes/
 │       │   ├── auth.js
-│       │   ├── learningPaths.js
-│       │   ├── diagnostic.js
+│       │   ├── plans.js
 │       │   ├── studyPlan.js
 │       │   ├── aiTutor.js
 │       │   └── progress.js

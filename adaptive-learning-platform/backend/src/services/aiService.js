@@ -30,7 +30,12 @@ async function callAI(messages, { maxTokens = 1500, temperature = 0.7 } = {}) {
 
 function parseJSON(raw) {
   const clean = raw.replace(/```json|```/g, '').trim();
-  return JSON.parse(clean);
+  const start = clean.indexOf('{');
+  const end   = clean.lastIndexOf('}');
+  if (start === -1 || end === -1 || end < start) {
+    throw new Error('Resposta da IA não contém um JSON válido');
+  }
+  return JSON.parse(clean.slice(start, end + 1));
 }
 
 async function generateDiagnosticQuestions({ pathTitle, topics, numQuestions = 10 }) {
@@ -109,10 +114,13 @@ async function generateProgressTest({ pathTitle, topics, studentLevel, previousS
   const harder = previousScore >= 70;
 
   const messages = [
-    { role: 'system', content: 'Gere avaliações de progresso adaptativas em JSON.' },
+    {
+      role: 'system',
+      content: 'Você é um especialista pedagógico. Responda APENAS com JSON válido, sem texto adicional.',
+    },
     {
       role: 'user',
-      content: `5 questões de progresso para "${pathTitle}".\nNível: ${studentLevel}\nScore anterior: ${previousScore}%\nTópicos: ${topics.join(', ')}\nQuestões devem ser ${harder ? 'mais difíceis' : 'no mesmo nível'} que a avaliação anterior.\n\nMesmo formato JSON de questões diagnósticas.`,
+      content: `Gere 5 questões de múltipla escolha de progresso para a trilha "${pathTitle}".\n\nNível do aluno: ${studentLevel}\nScore anterior: ${previousScore}%\nTópicos: ${topics.join(', ')}\nAs questões devem ser ${harder ? 'mais difíceis' : 'do mesmo nível'} que a avaliação anterior.\n\nFormato JSON:\n{\n  "questions": [\n    {\n      "question_text": "string",\n      "options": [{"label":"A","text":"..."},{"label":"B","text":"..."},{"label":"C","text":"..."},{"label":"D","text":"..."}],\n      "correct_option": "A",\n      "difficulty": "beginner",\n      "explanation": "string",\n      "topic": "nome do tópico"\n    }\n  ]\n}`,
     },
   ];
 
