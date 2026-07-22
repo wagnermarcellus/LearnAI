@@ -70,7 +70,7 @@
 2. POST /auth/login            → Obtém token
 3. POST /learning-paths        → Admin cria trilha (token admin)
 4. POST /learning-paths/:id/enroll → Aluno se inscreve
-5. POST /diagnostic/generate   → Gera avaliação (modo mock IA)
+5. POST /diagnostic/generate   → Gera avaliação (via Groq)
 6. POST /diagnostic/submit     → Submete respostas
 7. POST /study-plan/generate   → Gera plano personalizado
 8. POST /ai/chat               → Faz pergunta ao tutor

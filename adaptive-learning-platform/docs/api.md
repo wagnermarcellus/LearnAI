@@ -35,7 +35,7 @@ Cadastra um novo usuário com perfil `student`.
   "success": true,
   "message": "Conta criada com sucesso",
   "data": {
-    "user": { "id": "uuid", "name": "João Silva", "email": "...", "role": "student", "xp": 0, "level": 1 },
+    "user": { "id": "objectId", "name": "João Silva", "email": "...", "role": "student", "xp": 0, "level": 1 },
     "token": "eyJ..."
   }
 }
@@ -63,7 +63,7 @@ Retorna os dados do usuário autenticado pelo token.
 **Resposta 200:**
 ```json
 {
-  "data": { "id": "uuid", "name": "...", "email": "...", "role": "student", "xp": 150, "level": 2 }
+  "data": { "id": "objectId", "name": "...", "email": "...", "role": "student", "xp": 150, "level": 2 }
 }
 ```
 
@@ -89,7 +89,7 @@ Retorna os detalhes de uma trilha, incluindo tópicos e habilidades. Para alunos
 ```json
 {
   "title": "Desenvolvimento Web Full-Stack",
-  "description": "Aprenda React, Node.js e PostgreSQL do zero ao deploy.",
+  "description": "Aprenda React, Node.js e MongoDB do zero ao deploy.",
   "topics": [
     {
       "title": "JavaScript Moderno",
@@ -120,17 +120,17 @@ Gera uma avaliação diagnóstica com 10 questões via IA. O aluno deve estar in
 
 **Body:**
 ```json
-{ "learning_path_id": "uuid" }
+{ "learning_path_id": "objectId" }
 ```
 
 **Resposta 201:**
 ```json
 {
   "data": {
-    "test": { "id": "uuid", "status": "pending", "type": "diagnostic" },
+    "test": { "id": "objectId", "status": "pending", "type": "diagnostic" },
     "questions": [
       {
-        "id": "uuid",
+        "id": "objectId",
         "question_text": "O que é uma Promise em JavaScript?",
         "options": [
           { "label": "A", "text": "Um tipo primitivo de dado" },
@@ -155,9 +155,9 @@ Submete as respostas e recebe o resultado com análise pedagógica gerada pela I
 **Body:**
 ```json
 {
-  "test_id": "uuid",
+  "test_id": "objectId",
   "answers": [
-    { "question_id": "uuid", "selected_option": "B" }
+    { "question_id": "objectId", "selected_option": "B" }
   ]
 }
 ```
@@ -171,7 +171,7 @@ Submete as respostas e recebe o resultado com análise pedagógica gerada pela I
     "total": 10,
     "level": "advanced",
     "xp_gained": 35,
-    "test_id": "uuid",
+    "test_id": "objectId",
     "analysis": {
       "summary": "O aluno demonstrou...",
       "strengths": ["Bom entendimento de..."],
@@ -202,7 +202,7 @@ Gera um plano de estudo personalizado. Requer avaliação diagnóstica concluíd
 **Body:**
 ```json
 {
-  "learning_path_id": "uuid",
+  "learning_path_id": "objectId",
   "goals": "Conseguir meu primeiro emprego como desenvolvedor em 6 meses"
 }
 ```
@@ -211,7 +211,7 @@ Gera um plano de estudo personalizado. Requer avaliação diagnóstica concluíd
 
 ### GET /study-plan 🔒
 
-Lista planos ativos do aluno. Query param opcional: `?learning_path_id=uuid`
+Lista planos ativos do aluno. Query param opcional: `?learning_path_id=objectId`
 
 ---
 
@@ -225,7 +225,7 @@ Envia uma mensagem ao tutor. A resposta é adaptada ao nível do aluno.
 ```json
 {
   "message": "O que é injeção de dependência?",
-  "learning_path_id": "uuid"
+  "learning_path_id": "objectId"
 }
 ```
 
@@ -241,7 +241,7 @@ Envia uma mensagem ao tutor. A resposta é adaptada ao nível do aluno.
 
 ### GET /ai/history 🔒
 
-Retorna o histórico de chat. Query params: `?learning_path_id=uuid&limit=50`
+Retorna o histórico de chat. Query params: `?learning_path_id=objectId&limit=50`
 
 ---
 
@@ -257,7 +257,7 @@ Solicita uma avaliação de progresso com dificuldade adaptativa.
 
 **Body:**
 ```json
-{ "learning_path_id": "uuid" }
+{ "learning_path_id": "objectId" }
 ```
 
 **Resposta 201:** nova avaliação gerada com questões adaptadas ao desempenho anterior.

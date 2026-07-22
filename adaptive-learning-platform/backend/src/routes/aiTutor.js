@@ -8,8 +8,8 @@ router.post('/chat', authenticate, [
   body('message')
     .trim().notEmpty().withMessage('Mensagem obrigatória')
     .isLength({ max: 2000 }).withMessage('Mensagem muito longa (máx. 2000 caracteres)'),
-  body('learning_path_id').optional().isUUID(),
-  body('topic_id').optional().isUUID(),
+  body('learning_path_id').optional().isMongoId(),
+  body('topic_id').optional().isString(),
 ], validate, ctrl.chat);
 
 router.get('/history', authenticate, ctrl.getHistory);

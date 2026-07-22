@@ -1,23 +1,29 @@
-const { query }          = require('../config/database');
-const { success, error } = require('../utils/response');
+const LearningPath        = require('../models/LearningPath');
+const Enrollment          = require('../models/Enrollment');
+const { success, error }  = require('../utils/response');
 
 exports.getAll = async (req, res, next) => {
   try {
-    const result = await query(`
-      SELECT
-        lp.*,
-        u.name                    AS created_by_name,
-        COUNT(DISTINCT t.id)      AS topic_count,
-        COUNT(DISTINCT e.user_id) AS enrolled_count
-      FROM learning_paths lp
-      LEFT JOIN users       u ON u.id = lp.created_by
-      LEFT JOIN topics      t ON t.learning_path_id = lp.id
-      LEFT JOIN enrollments e ON e.learning_path_id = lp.id
-      WHERE lp.is_active = true
-      GROUP BY lp.id, u.name
-      ORDER BY lp.created_at DESC
-    `);
-    return success(res, result.rows);
+    const paths = await LearningPath.find({ is_active: true })
+      .sort({ created_at: -1 })
+      .populate('created_by', 'name');
+
+    const enrolledCounts = await Enrollment.aggregate([
+      { $group: { _id: '$learning_path_id', count: { $sum: 1 } } },
+    ]);
+    const countsByPath = Object.fromEntries(
+      enrolledCounts.map(c => [c._id.toString(), c.count])
+    );
+
+    const data = paths.map(p => ({
+      ...p.toJSON(),
+      created_by_name: p.created_by?.name || null,
+      created_by:      p.created_by?.id || p.created_by,
+      topic_count:     p.topics.length,
+      enrolled_count:  countsByPath[p.id] || 0,
+    }));
+
+    return success(res, data);
   } catch (err) { next(err); }
 };
 
@@ -25,40 +31,18 @@ exports.getById = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const pathResult = await query(`
-      SELECT lp.*, u.name AS created_by_name
-      FROM learning_paths lp
-      LEFT JOIN users u ON u.id = lp.created_by
-      WHERE lp.id = $1
-    `, [id]);
+    const path = await LearningPath.findById(id).populate('created_by', 'name');
+    if (!path) return error(res, 'Trilha não encontrada', 404);
 
-    if (!pathResult.rows[0]) return error(res, 'Trilha não encontrada', 404);
-
-    const topicsResult = await query(`
-      SELECT
-        t.*,
-        COALESCE(
-          json_agg(
-            json_build_object('id', s.id, 'name', s.name, 'description', s.description)
-            ORDER BY s.order_index
-          ) FILTER (WHERE s.id IS NOT NULL),
-          '[]'
-        ) AS skills
-      FROM topics t
-      LEFT JOIN skills s ON s.topic_id = t.id
-      WHERE t.learning_path_id = $1
-      GROUP BY t.id
-      ORDER BY t.order_index
-    `, [id]);
-
-    const data = { ...pathResult.rows[0], topics: topicsResult.rows };
+    const data = {
+      ...path.toJSON(),
+      created_by_name: path.created_by?.name || null,
+      created_by:      path.created_by?.id || path.created_by,
+    };
 
     if (req.user?.role === 'student') {
-      const enr = await query(
-        'SELECT id FROM enrollments WHERE user_id = $1 AND learning_path_id = $2',
-        [req.user.id, id]
-      );
-      data.is_enrolled = enr.rows.length > 0;
+      const enr = await Enrollment.findOne({ user_id: req.user.id, learning_path_id: id });
+      data.is_enrolled = !!enr;
     }
 
     return success(res, data);
@@ -69,30 +53,20 @@ exports.create = async (req, res, next) => {
   try {
     const { title, description, thumbnail, topics = [] } = req.body;
 
-    const pathResult = await query(
-      'INSERT INTO learning_paths (title, description, thumbnail, created_by) VALUES ($1,$2,$3,$4) RETURNING *',
-      [title, description || null, thumbnail || null, req.user.id]
-    );
-    const path = pathResult.rows[0];
-
-    for (let i = 0; i < topics.length; i++) {
-      const tp = topics[i];
-      const topicResult = await query(
-        'INSERT INTO topics (learning_path_id, title, description, order_index) VALUES ($1,$2,$3,$4) RETURNING id',
-        [path.id, tp.title, tp.description || null, i]
-      );
-      const topicId = topicResult.rows[0].id;
-
-      for (let j = 0; j < (tp.skills || []).length; j++) {
-        const sk = tp.skills[j];
-        if (sk.name) {
-          await query(
-            'INSERT INTO skills (topic_id, name, description, order_index) VALUES ($1,$2,$3,$4)',
-            [topicId, sk.name, sk.description || null, j]
-          );
-        }
-      }
-    }
+    const path = await LearningPath.create({
+      title,
+      description: description || null,
+      thumbnail: thumbnail || null,
+      created_by: req.user.id,
+      topics: topics.map(tp => ({
+        title: tp.title,
+        description: tp.description || null,
+        skills: (tp.skills || []).filter(sk => sk.name).map(sk => ({
+          name: sk.name,
+          description: sk.description || null,
+        })),
+      })),
+    });
 
     return success(res, path, 'Trilha criada com sucesso', 201);
   } catch (err) { next(err); }
@@ -103,15 +77,14 @@ exports.update = async (req, res, next) => {
     const { id } = req.params;
     const { title, description, thumbnail, is_active } = req.body;
 
-    const result = await query(`
-      UPDATE learning_paths
-      SET title=$1, description=$2, thumbnail=$3, is_active=$4
-      WHERE id=$5
-      RETURNING *
-    `, [title, description, thumbnail, is_active, id]);
+    const path = await LearningPath.findByIdAndUpdate(
+      id,
+      { title, description, thumbnail, is_active },
+      { new: true, runValidators: true }
+    );
 
-    if (!result.rows[0]) return error(res, 'Trilha não encontrada', 404);
-    return success(res, result.rows[0], 'Trilha atualizada');
+    if (!path) return error(res, 'Trilha não encontrada', 404);
+    return success(res, path, 'Trilha atualizada');
   } catch (err) { next(err); }
 };
 
@@ -119,14 +92,13 @@ exports.enroll = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const pathExists = await query(
-      'SELECT id FROM learning_paths WHERE id=$1 AND is_active=true', [id]
-    );
-    if (!pathExists.rows[0]) return error(res, 'Trilha não encontrada', 404);
+    const pathExists = await LearningPath.exists({ _id: id, is_active: true });
+    if (!pathExists) return error(res, 'Trilha não encontrada', 404);
 
-    await query(
-      'INSERT INTO enrollments (user_id, learning_path_id) VALUES ($1,$2) ON CONFLICT DO NOTHING',
-      [req.user.id, id]
+    await Enrollment.updateOne(
+      { user_id: req.user.id, learning_path_id: id },
+      { $setOnInsert: { user_id: req.user.id, learning_path_id: id } },
+      { upsert: true }
     );
 
     return success(res, null, 'Inscrição realizada com sucesso');
@@ -135,13 +107,18 @@ exports.enroll = async (req, res, next) => {
 
 exports.getMyEnrollments = async (req, res, next) => {
   try {
-    const result = await query(`
-      SELECT lp.*, e.enrolled_at, e.completed_at
-      FROM enrollments e
-      JOIN learning_paths lp ON lp.id = e.learning_path_id
-      WHERE e.user_id = $1
-      ORDER BY e.enrolled_at DESC
-    `, [req.user.id]);
-    return success(res, result.rows);
+    const enrollments = await Enrollment.find({ user_id: req.user.id })
+      .sort({ enrolled_at: -1 })
+      .populate('learning_path_id');
+
+    const data = enrollments
+      .filter(e => e.learning_path_id)
+      .map(e => ({
+        ...e.learning_path_id.toJSON(),
+        enrolled_at:  e.enrolled_at,
+        completed_at: e.completed_at,
+      }));
+
+    return success(res, data);
   } catch (err) { next(err); }
 };

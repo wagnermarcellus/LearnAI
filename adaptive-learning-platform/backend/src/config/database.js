@@ -1,27 +1,14 @@
-const { Pool } = require('pg');
+const mongoose = require('mongoose');
+const logger   = require('../utils/logger');
 
-const pool = process.env.DATABASE_URL
-  ? new Pool({
-      connectionString: process.env.DATABASE_URL,
-      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-    })
-  : new Pool({
-      host:     process.env.DB_HOST     || 'localhost',
-      port:     parseInt(process.env.DB_PORT) || 5432,
-      database: process.env.DB_NAME     || 'adaptive_learning',
-      user:     process.env.DB_USER     || 'postgres',
-      password: process.env.DB_PASSWORD || '',
-      max: 20,
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 2000,
-    });
-
-pool.on('error', (err) => {
-  console.error('Erro no pool do banco de dados:', err);
-  process.exit(-1);
+mongoose.connection.on('error', (err) => {
+  logger.error('Erro na conexão com o MongoDB', { message: err.message });
 });
 
-const query     = (text, params) => pool.query(text, params);
-const getClient = () => pool.connect();
+const connect = async () => {
+  const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/adaptive_learning';
+  await mongoose.connect(uri);
+  logger.info('Conectado ao MongoDB');
+};
 
-module.exports = { query, getClient, pool };
+module.exports = { connect, mongoose };

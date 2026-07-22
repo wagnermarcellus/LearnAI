@@ -42,10 +42,10 @@
 | RNF05 | Segurança | Headers de segurança via Helmet.js |
 | RNF06 | Usabilidade | Interface responsiva compatível com dispositivos móveis e desktop |
 | RNF07 | Usabilidade | Feedback visual em todas as ações assíncronas (loading states) |
-| RNF08 | Desempenho | Pool de conexões com o banco de dados (máx. 20 conexões) |
-| RNF09 | Manutenibilidade | Código organizado em camadas (controllers, services, routes, middlewares) |
+| RNF08 | Desempenho | Conexão única com o MongoDB gerenciada pelo Mongoose (connection pooling nativo do driver) |
+| RNF09 | Manutenibilidade | Código organizado em camadas (controllers, services, routes, middlewares, models) |
 | RNF10 | Manutenibilidade | Variáveis de ambiente separadas em arquivo `.env` |
-| RNF11 | Portabilidade | Backend compatível com `DATABASE_URL` para deploy em nuvem |
+| RNF11 | Portabilidade | Backend compatível com `MONGODB_URI` para deploy em nuvem (ex.: MongoDB Atlas) |
 | RNF12 | Disponibilidade | Health check endpoint em `/api/health` |
 
 ---
@@ -84,188 +84,159 @@
 
 ---
 
-## 4. Modelo Conceitual do Banco de Dados
+## 4. Modelo Conceitual do Banco de Dados (MongoDB)
+
+Coleções, com `topics`/`skills` e `questions`/`answers` embutidos como subdocumentos
+nos documentos pai (evita joins para os dados sempre lidos em conjunto). Relações entre
+coleções (usuário ⇄ trilha ⇄ inscrição ⇄ avaliação ⇄ plano) usam `ObjectId` como referência.
 
 ```
-USERS ──────────────── ENROLLMENTS ──────────── LEARNING_PATHS
-  │ id (PK)                │ id (PK)                 │ id (PK)
-  │ name                   │ user_id (FK)             │ title
-  │ email                  │ learning_path_id (FK)    │ description
-  │ password_hash          │ enrolled_at              │ created_by (FK→USERS)
-  │ role                   └────────────────────      │ is_active
-  │ xp                                                └───────────────────────
-  │ level                                                          │
-  │                                                                │
-  ├──────────────────── DIAGNOSTIC_TESTS                    TOPICS │
-  │                          │ id (PK)                      │ id (PK)
-  │                          │ user_id (FK)                 │ learning_path_id (FK)
-  │                          │ learning_path_id (FK)        │ title
-  │                          │ type (diagnostic/progress)   │ order_index
-  │                          │ status (pending/completed)   └──────────────────
-  │                          │ score                                  │
-  │                          │ level_assigned                         │
-  │                          │ ai_raw_response                  SKILLS
-  │                          └────────────────────              │ id (PK)
-  │                                    │                        │ topic_id (FK)
-  │                             QUESTIONS                       │ name
-  │                                    │ id (PK)                └──────────────
-  │                                    │ diagnostic_test_id (FK)
-  │                                    │ topic_id (FK)
-  │                                    │ question_text
-  │                                    │ options (JSONB)
-  │                                    │ correct_option
-  │                                    │ difficulty
-  │                                    └────────────────────
-  │                                             │
-  │                                    STUDENT_ANSWERS
-  │                                             │ id (PK)
-  │                                             │ diagnostic_test_id (FK)
-  │                                             │ question_id (FK)
-  │                                             │ user_id (FK)
-  │                                             │ selected_option
-  │                                             │ is_correct
-  │                                             └────────────────────
+USERS                          ENROLLMENTS                    LEARNING_PATHS
+  _id                            _id                            _id
+  name                           user_id      (ref→USERS)        title
+  email                          learning_path_id (ref→LP)       description
+  password_hash                 enrolled_at                     created_by (ref→USERS)
+  role                           completed_at                    is_active
+  xp                                                              topics: [{
+  level                                                             _id, title, description,
+  is_active                                                        order_index,
+                                                                     skills: [{ _id, name,
+  ┌──────────────────── DIAGNOSTIC_TESTS                                       description, order_index }]
+  │                       _id                                                }]
+  │                       user_id       (ref→USERS)
+  │                       learning_path_id (ref→LP)
+  │                       type (diagnostic/progress)
+  │                       status (pending/completed)
+  │                       score
+  │                       level_assigned
+  │                       ai_raw_response
+  │                       questions: [{ _id, topic_title, question_text,
+  │                                     options, correct_option, difficulty,
+  │                                     explanation, order_index }]
+  │                       answers:   [{ _id, question_id, user_id,
+  │                                     selected_option, is_correct, answered_at }]
   │
   ├──────────────────── STUDY_PLANS
-  │                          │ id (PK)
-  │                          │ user_id (FK)
-  │                          │ learning_path_id (FK)
-  │                          │ diagnostic_test_id (FK)
-  │                          │ content (JSONB)
-  │                          │ goals
-  │                          └────────────────────
+  │                       _id
+  │                       user_id            (ref→USERS)
+  │                       learning_path_id   (ref→LP)
+  │                       diagnostic_test_id (ref→DIAGNOSTIC_TESTS)
+  │                       content
+  │                       goals
+  │                       is_active
   │
   ├──────────────────── AI_INTERACTIONS
-  │                          │ id (PK)
-  │                          │ user_id (FK)
-  │                          │ learning_path_id (FK)
-  │                          │ role (user/assistant)
-  │                          │ content
-  │                          └────────────────────
+  │                       _id
+  │                       user_id          (ref→USERS)
+  │                       learning_path_id (ref→LP)
+  │                       topic_title
+  │                       role (user/assistant)
+  │                       content
+  │                       tokens_used
   │
   ├──────────────────── USER_BADGES
-  │                          │ id (PK)
-  │                          │ user_id (FK)
-  │                          │ badge
-  │                          └────────────────────
+  │                       _id
+  │                       user_id (ref→USERS)
+  │                       badge
   │
   └──────────────────── XP_EVENTS
-                             │ id (PK)
-                             │ user_id (FK)
-                             │ xp_gained
-                             │ reason
-                             └────────────────────
+                          _id
+                          user_id (ref→USERS)
+                          xp_gained
+                          reason
 ```
 
 ---
 
-## 5. Modelo Lógico do Banco de Dados
+## 5. Modelo Lógico do Banco de Dados (Mongoose)
 
-```sql
-users(
-  id UUID PK,
-  name VARCHAR(150) NOT NULL,
-  email VARCHAR(255) NOT NULL UNIQUE,
-  password_hash VARCHAR(255) NOT NULL,
-  role ENUM('student','admin') NOT NULL DEFAULT 'student',
-  xp INTEGER NOT NULL DEFAULT 0,
-  level INTEGER NOT NULL DEFAULT 1,
-  is_active BOOLEAN NOT NULL DEFAULT TRUE
-)
+```js
+User {
+  name: String,
+  email: String (unique),
+  password_hash: String,
+  role: 'student' | 'admin',
+  xp: Number,
+  level: Number,
+  is_active: Boolean,
+}
 
-learning_paths(
-  id UUID PK,
-  title VARCHAR(200) NOT NULL,
-  description TEXT,
-  created_by UUID FK→users(id),
-  is_active BOOLEAN NOT NULL DEFAULT TRUE
-)
+LearningPath {
+  title: String,
+  description: String,
+  created_by: ObjectId → User,
+  is_active: Boolean,
+  topics: [{
+    title: String,
+    description: String,
+    order_index: Number,
+    skills: [{ name: String, description: String, order_index: Number }],
+  }],
+}
 
-topics(
-  id UUID PK,
-  learning_path_id UUID FK→learning_paths(id) CASCADE,
-  title VARCHAR(200) NOT NULL,
-  order_index INTEGER NOT NULL DEFAULT 0
-)
+Enrollment {
+  user_id: ObjectId → User,
+  learning_path_id: ObjectId → LearningPath,
+  enrolled_at: Date,
+  completed_at: Date,
+  // índice único composto: (user_id, learning_path_id)
+}
 
-skills(
-  id UUID PK,
-  topic_id UUID FK→topics(id) CASCADE,
-  name VARCHAR(200) NOT NULL,
-  order_index INTEGER NOT NULL DEFAULT 0
-)
+DiagnosticTest {
+  user_id: ObjectId → User,
+  learning_path_id: ObjectId → LearningPath,
+  type: 'diagnostic' | 'progress' | 'final',
+  status: 'pending' | 'completed',
+  score: Number,
+  level_assigned: 'beginner' | 'intermediate' | 'advanced' | 'expert',
+  ai_raw_response: Mixed,
+  questions: [{
+    topic_title: String,
+    question_text: String,
+    options: Mixed,
+    correct_option: String,
+    difficulty: String,
+    explanation: String,
+    order_index: Number,
+  }],
+  answers: [{
+    question_id: ObjectId,       // referencia o _id de um item em `questions`
+    user_id: ObjectId → User,
+    selected_option: String,
+    is_correct: Boolean,
+    answered_at: Date,
+  }],
+}
 
-enrollments(
-  id UUID PK,
-  user_id UUID FK→users(id) CASCADE,
-  learning_path_id UUID FK→learning_paths(id) CASCADE,
-  UNIQUE(user_id, learning_path_id)
-)
+StudyPlan {
+  user_id: ObjectId → User,
+  learning_path_id: ObjectId → LearningPath,
+  diagnostic_test_id: ObjectId → DiagnosticTest,
+  content: Mixed,
+  goals: String,
+  is_active: Boolean,
+}
 
-diagnostic_tests(
-  id UUID PK,
-  user_id UUID FK→users(id) CASCADE,
-  learning_path_id UUID FK→learning_paths(id) CASCADE,
-  type ENUM('diagnostic','progress','final') NOT NULL DEFAULT 'diagnostic',
-  status ENUM('pending','completed') NOT NULL DEFAULT 'pending',
-  score NUMERIC(5,2),
-  level_assigned ENUM('beginner','intermediate','advanced','expert'),
-  ai_raw_response TEXT
-)
+AiInteraction {
+  user_id: ObjectId → User,
+  learning_path_id: ObjectId → LearningPath,
+  topic_title: String,
+  role: String,
+  content: String,
+  tokens_used: Number,
+}
 
-questions(
-  id UUID PK,
-  diagnostic_test_id UUID FK→diagnostic_tests(id) CASCADE,
-  topic_id UUID FK→topics(id),
-  question_text TEXT NOT NULL,
-  options JSONB NOT NULL,
-  correct_option VARCHAR(1) NOT NULL,
-  difficulty ENUM('beginner','intermediate','advanced','expert') NOT NULL,
-  explanation TEXT,
-  order_index INTEGER NOT NULL DEFAULT 0
-)
+UserBadge {
+  user_id: ObjectId → User,
+  badge: String,
+  // índice único composto: (user_id, badge)
+}
 
-student_answers(
-  id UUID PK,
-  diagnostic_test_id UUID FK→diagnostic_tests(id) CASCADE,
-  question_id UUID FK→questions(id) CASCADE,
-  user_id UUID FK→users(id) CASCADE,
-  selected_option VARCHAR(1) NOT NULL,
-  is_correct BOOLEAN NOT NULL,
-  UNIQUE(diagnostic_test_id, question_id, user_id)
-)
-
-study_plans(
-  id UUID PK,
-  user_id UUID FK→users(id) CASCADE,
-  learning_path_id UUID FK→learning_paths(id) CASCADE,
-  diagnostic_test_id UUID FK→diagnostic_tests(id),
-  content JSONB NOT NULL,
-  goals TEXT,
-  is_active BOOLEAN NOT NULL DEFAULT TRUE
-)
-
-ai_interactions(
-  id UUID PK,
-  user_id UUID FK→users(id) CASCADE,
-  learning_path_id UUID FK→learning_paths(id),
-  role VARCHAR(20) NOT NULL,
-  content TEXT NOT NULL
-)
-
-user_badges(
-  id UUID PK,
-  user_id UUID FK→users(id) CASCADE,
-  badge VARCHAR(50) NOT NULL,
-  UNIQUE(user_id, badge)
-)
-
-xp_events(
-  id UUID PK,
-  user_id UUID FK→users(id) CASCADE,
-  xp_gained INTEGER NOT NULL,
-  reason VARCHAR(100) NOT NULL
-)
+XpEvent {
+  user_id: ObjectId → User,
+  xp_gained: Number,
+  reason: String,
+}
 ```
 
 ---
@@ -283,7 +254,7 @@ xp_events(
    ┌────┴────────────────────────────────┐
    │                                     │
    ▼                                     ▼
-[PostgreSQL]                      [Groq API (IA)]
+[MongoDB]                         [Groq API (IA)]
   Dados persistentes            Geração de questões,
   Usuários, trilhas,            análise pedagógica,
   avaliações, planos            plano de estudo,

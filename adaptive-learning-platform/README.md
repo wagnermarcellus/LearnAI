@@ -12,7 +12,7 @@
 ```
 adaptive-learning-platform/
 ├── database/
-│   └── schema.sql
+│   └── seed.js
 ├── docs/
 │   ├── requisitos.md        ← Análise de requisitos + casos de uso + modelo de dados
 │   ├── api.md               ← Documentação completa da API REST
@@ -24,6 +24,15 @@ adaptive-learning-platform/
 │       ├── server.js
 │       ├── config/
 │       │   └── database.js
+│       ├── models/
+│       │   ├── User.js
+│       │   ├── LearningPath.js
+│       │   ├── Enrollment.js
+│       │   ├── DiagnosticTest.js
+│       │   ├── StudyPlan.js
+│       │   ├── AiInteraction.js
+│       │   ├── UserBadge.js
+│       │   └── XpEvent.js
 │       ├── middlewares/
 │       │   ├── auth.js
 │       │   ├── validate.js
@@ -86,8 +95,8 @@ adaptive-learning-platform/
 |--------|-------------|
 | Front-end | React 18, React Router 6, Axios, Vite |
 | Back-end | Node.js, Express.js, JWT, bcryptjs, Helmet, express-validator |
-| Banco de dados | PostgreSQL 14+ |
-| IA | Qualquer API compatível com OpenAI Chat Completions (Groq, Gemini, etc.) — modo mock disponível |
+| Banco de dados | MongoDB 6+ (Mongoose) — local ou MongoDB Atlas |
+| IA | Qualquer API compatível com OpenAI Chat Completions (Groq, Gemini, etc.) |
 | Versionamento | Git |
 
 ---
@@ -97,7 +106,7 @@ adaptive-learning-platform/
 ### Pré-requisitos
 
 - Node.js v18 ou superior
-- PostgreSQL 14 ou superior
+- MongoDB 6 ou superior (local, Docker ou um cluster no MongoDB Atlas)
 - Git
 
 ### 1. Clone o repositório
@@ -109,9 +118,15 @@ cd adaptive-learning-platform
 
 ### 2. Banco de dados
 
+Use uma instância local do MongoDB ou crie um cluster gratuito no
+[MongoDB Atlas](https://cloud.mongodb.com). Não é preciso criar coleções manualmente — os
+schemas do Mongoose (`backend/src/models/`) as criam automaticamente na primeira gravação.
+
+Depois de configurar o `.env` (próximo passo), rode o seed para criar o usuário admin padrão:
+
 ```bash
-psql -U postgres -c "CREATE DATABASE adaptive_learning;"
-psql -U postgres -d adaptive_learning -f database/schema.sql
+cd backend
+node ../database/seed.js
 ```
 
 ### 3. Back-end
@@ -125,13 +140,16 @@ Edite o arquivo `.env`:
 
 ```env
 PORT=3001
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=adaptive_learning
-DB_USER=postgres
-DB_PASSWORD=sua_senha
+MONGODB_URI=mongodb://localhost:27017/adaptive_learning
 JWT_SECRET=string_longa_e_aleatoria
-AI_MOCK=true
+GROQ_API_KEY=sua_chave_groq
+```
+
+Para usar o MongoDB Atlas, troque `MONGODB_URI` pela connection string do cluster
+(Atlas → Connect → Drivers → Node.js), incluindo usuário, senha e nome do banco:
+
+```env
+MONGODB_URI=mongodb+srv://<usuario>:<senha>@<cluster>.mongodb.net/adaptive_learning?retryWrites=true&w=majority
 ```
 
 ```bash
@@ -173,9 +191,8 @@ equivalente apenas trocando as variáveis de ambiente — o código não muda.
 
 ```env
 GROQ_API_KEY=gsk_xxxxxxxxxxxx
-GROQ_MODEL=llama3-8b-8192
+GROQ_MODEL=llama-3.1-8b-instant
 GROQ_BASE_URL=https://api.groq.com/openai/v1
-AI_MOCK=false
 ```
 
 ### Opção B — Gemini (via endpoint compatível com OpenAI)
@@ -187,7 +204,6 @@ AI_MOCK=false
 GROQ_API_KEY=sua_chave_gemini
 GROQ_MODEL=gemini-2.0-flash
 GROQ_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai
-AI_MOCK=false
 ```
 
 As variáveis mantêm o prefixo `GROQ_` por serem os nomes lidos pelo `aiService.js`, independente do
@@ -195,15 +211,15 @@ provedor escolhido.
 
 4. Reinicie o servidor após qualquer mudança no `.env`
 
-Sem a chave configurada (ou com `AI_MOCK=true`), o serviço utiliza respostas simuladas realistas —
-ideal para testes locais sem depender de API externa.
+`GROQ_API_KEY` é obrigatória — sem ela, qualquer chamada à IA (tutor, avaliações, planos de estudo)
+retorna erro em vez de uma resposta simulada.
 
 ---
 
 ## Arquitetura do Sistema
 
 ```
-[React SPA]  ──HTTP/REST──►  [Express API]  ──►  [PostgreSQL]
+[React SPA]  ──HTTP/REST──►  [Express API]  ──►  [MongoDB]
                                    │
                                    └──►  [Groq API]
 ```
@@ -214,7 +230,8 @@ O back-end segue arquitetura em camadas:
 - **Middlewares** — autenticação JWT, autorização RBAC, validação de input, tratamento de erros
 - **Controllers** — orquestra a lógica de cada requisição
 - **Services** — encapsula a integração com a IA (Groq)
-- **Config** — pool de conexão com o PostgreSQL
+- **Models** — schemas Mongoose (User, LearningPath, DiagnosticTest, StudyPlan, etc.)
+- **Config** — conexão com o MongoDB via Mongoose
 - **Utils** — logger (Winston) e helpers de resposta padronizada
 
 ---

@@ -1,4 +1,5 @@
 require('dotenv').config();
+
 const express      = require('express');
 const cors         = require('cors');
 const helmet       = require('helmet');
@@ -6,6 +7,7 @@ const morgan       = require('morgan');
 const rateLimit    = require('express-rate-limit');
 const logger       = require('./utils/logger');
 const errorHandler = require('./middlewares/errorHandler');
+const { connect }  = require('./config/database');
 
 const app = express();
 
@@ -41,8 +43,16 @@ app.use((_req, res) =>
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () =>
-  logger.info(`Servidor rodando na porta ${PORT} [${process.env.NODE_ENV || 'development'}]`)
-);
+
+connect()
+  .then(() => {
+    app.listen(PORT, () =>
+      logger.info(`Servidor rodando na porta ${PORT} [${process.env.NODE_ENV || 'development'}]`)
+    );
+  })
+  .catch((err) => {
+    logger.error('Falha ao conectar ao MongoDB', { message: err.message });
+    process.exit(1);
+  });
 
 module.exports = app;
