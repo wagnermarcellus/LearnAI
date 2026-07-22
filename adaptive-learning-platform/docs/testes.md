@@ -57,7 +57,7 @@
 
 | ID | Cenário | Resultado Esperado |
 |----|---------|---------------------|
-| T22 | Injeção SQL via parâmetros | Query parametrizada bloqueia a injeção |
+| T22 | Injeção de operadores NoSQL (ex.: `{"$ne": null}` no login) | Mongoose valida o tipo do campo; payload é tratado como string e rejeitado |
 | T23 | Token expirado | Status 401, "Token expirado" |
 | T24 | Rate limit excedido | Status 429 após 100 requisições/15min |
 
@@ -66,15 +66,17 @@
 ## 6. Teste de Integração — Fluxo Completo
 
 ```
-1. POST /auth/register         → Cria conta de aluno
-2. POST /auth/login            → Obtém token
-3. POST /learning-paths        → Admin cria trilha (token admin)
-4. POST /learning-paths/:id/enroll → Aluno se inscreve
-5. POST /diagnostic/generate   → Gera avaliação (via Groq)
-6. POST /diagnostic/submit     → Submete respostas
-7. POST /study-plan/generate   → Gera plano personalizado
-8. POST /ai/chat               → Faz pergunta ao tutor
-9. GET  /progress/overview     → Verifica XP e histórico
+1.  POST /auth/register                         → Cria conta de aluno
+2.  POST /auth/login                             → Obtém token
+3.  POST /plans                                  → Admin cria plano de ensino (token admin)
+4.  POST /plans/:id/enroll                       → Aluno se inscreve
+5.  POST /plans/diagnostic                       → Gera avaliação diagnóstica (via Groq)
+6.  POST /plans/diagnostic/:id/diagnostic/submit → Submete respostas
+7.  POST /plans/diagnostic/:id/progress          → Gera avaliação de progresso
+8.  POST /plans/diagnostic/:id/progress/submit   → Submete avaliação de progresso
+9.  POST /study-plan/generate                    → Gera plano de estudo personalizado
+10. POST /ai/chat                                → Faz pergunta ao tutor
+11. GET  /progress/overview                      → Verifica XP, nível e histórico
 ```
 
 ---
@@ -95,6 +97,6 @@ TOKEN=$(curl -s -X POST http://localhost:3001/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"teste@email.com","password":"Teste@123"}' | python3 -c "import sys,json; print(json.load(sys.stdin)['data']['token'])")
 
-# Listar trilhas
-curl -H "Authorization: Bearer $TOKEN" http://localhost:3001/api/learning-paths
+# Listar planos de ensino
+curl -H "Authorization: Bearer $TOKEN" http://localhost:3001/api/plans
 ```
