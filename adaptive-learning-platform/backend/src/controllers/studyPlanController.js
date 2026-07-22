@@ -3,6 +3,7 @@ const DiagnosticTest      = require('../models/DiagnosticTest');
 const LearningPath        = require('../models/LearningPath');
 const { success, error }  = require('../utils/response');
 const aiService           = require('../services/aiService');
+const { awardBadge }      = require('../utils/badges');
 
 exports.generate = async (req, res, next) => {
   try {
@@ -11,7 +12,7 @@ exports.generate = async (req, res, next) => {
 
     const test = await DiagnosticTest.findOne({
       user_id: userId, learning_path_id, status: 'completed',
-    }).sort({ completed_at: -1 }).populate('learning_path_id', 'title');
+    }).sort({ completed_at: -1 }).populate('learning_path_id', 'title topics');
 
     if (!test) return error(res, 'Complete uma avaliação diagnóstica antes de gerar o plano', 400);
 
@@ -53,6 +54,9 @@ exports.generate = async (req, res, next) => {
       content: plan,
       goals: goals || null,
     });
+
+    const planCount = await StudyPlan.countDocuments({ user_id: userId });
+    if (planCount === 1) await awardBadge(userId, 'primeiro_plano');
 
     return success(res, studyPlan, 'Plano de estudo gerado com sucesso', 201);
   } catch (err) { next(err); }

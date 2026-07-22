@@ -5,6 +5,8 @@ const User                = require('../models/User');
 const XpEvent             = require('../models/XpEvent');
 const { success, error }  = require('../utils/response');
 const aiService           = require('../services/aiService');
+const { xpToLevel }       = require('../utils/leveling');
+const { awardBadge }      = require('../utils/badges');
 
 exports.generateTest = async (req, res, next) => {
   try {
@@ -133,11 +135,24 @@ exports.submitAnswers = async (req, res, next, testType = 'diagnostic') => {
 
     const xpGained = Math.round(score / 10) * 5;
     if (xpGained > 0) {
-      await User.updateOne({ _id: userId }, { $inc: { xp: xpGained } });
-      await XpEvent.create({ user_id: userId, xp_gained: xpGained, reason: 'diagnostic_test' });
+      const updatedUser = await User.findByIdAndUpdate(
+        userId, { $inc: { xp: xpGained } }, { new: true }
+      );
+      await User.updateOne({ _id: userId }, { level: xpToLevel(updatedUser.xp) });
+      await XpEvent.create({ user_id: userId, xp_gained: xpGained, reason: `${testType}_test` });
     }
 
     await test.save();
+
+    if (score >= 90) {
+      await awardBadge(userId, 'nota_alta');
+    }
+    if (testType === 'diagnostic') {
+      const diagnosticCount = await DiagnosticTest.countDocuments({
+        user_id: userId, type: 'diagnostic', status: 'completed',
+      });
+      if (diagnosticCount === 1) await awardBadge(userId, 'primeiro_diagnostico');
+    }
 
     return success(res, {
       score: test.score,

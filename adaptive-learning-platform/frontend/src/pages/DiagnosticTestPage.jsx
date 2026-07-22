@@ -4,7 +4,7 @@ import api from '../services/api'
 
 const diffColor = { beginner: '#10b981', intermediate: '#f59e0b', advanced: '#ef4444', expert: '#8b5cf6' }
 
-export default function DiagnosticTestPage() {
+export default function DiagnosticTestPage({ mode = 'diagnostic' }) {
   const { pathId }   = useParams()
   const navigate     = useNavigate()
   const [test,       setTest]       = useState(null)
@@ -15,12 +15,18 @@ export default function DiagnosticTestPage() {
   const [submitting, setSubmitting] = useState(false)
   const [errMsg,     setErrMsg]     = useState('')
 
+  const isProgress = mode === 'progress'
+
   useEffect(() => {
-    api.post('/plans/diagnostic', { learning_path_id: pathId })
+    const request = isProgress
+      ? api.post(`/plans/diagnostic/${pathId}/progress`)
+      : api.post('/plans/diagnostic', { learning_path_id: pathId })
+
+    request
       .then(r => { setTest(r.data.data.test); setQuestions(r.data.data.questions) })
       .catch(err => setErrMsg(err.response?.data?.message || 'Erro ao gerar avaliação'))
       .finally(() => setLoading(false))
-  }, [pathId])
+  }, [pathId, isProgress])
 
   const pick = (option) => {
     setAnswers(prev => ({ ...prev, [questions[current].id]: option }))
@@ -36,7 +42,8 @@ export default function DiagnosticTestPage() {
         question_id,
         selected_option,
       }))
-      await api.post(`/plans/diagnostic/${pathId}/diagnostic/submit`, { answers: answersArray })
+      const suffix = isProgress ? 'progress' : 'diagnostic'
+      await api.post(`/plans/diagnostic/${pathId}/${suffix}/submit`, { answers: answersArray })
       navigate(`/diagnostic/${test.id}/result`)
     } catch (err) {
       setErrMsg(err.response?.data?.message || 'Erro ao enviar respostas')
@@ -64,8 +71,12 @@ export default function DiagnosticTestPage() {
   return (
     <div style={{ maxWidth: 700, margin: '0 auto' }}>
       <div className="page-header">
-        <h1 className="page-title">Avaliação Diagnóstica</h1>
-        <p className="page-subtitle">Responda para personalizarmos seu plano de aprendizagem</p>
+        <h1 className="page-title">{isProgress ? 'Avaliação de Progresso' : 'Avaliação Diagnóstica'}</h1>
+        <p className="page-subtitle">
+          {isProgress
+            ? 'Responda para medirmos sua evolução nesta trilha'
+            : 'Responda para personalizarmos seu plano de aprendizagem'}
+        </p>
       </div>
 
       <div className="card" style={{ marginBottom: 20 }}>

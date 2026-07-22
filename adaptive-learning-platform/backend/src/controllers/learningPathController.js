@@ -1,6 +1,7 @@
 const LearningPath        = require('../models/LearningPath');
 const Enrollment          = require('../models/Enrollment');
 const { success, error }  = require('../utils/response');
+const { awardBadge }      = require('../utils/badges');
 
 exports.getAll = async (req, res, next) => {
   try {
@@ -95,11 +96,16 @@ exports.enroll = async (req, res, next) => {
     const pathExists = await LearningPath.exists({ _id: id, is_active: true });
     if (!pathExists) return error(res, 'Trilha não encontrada', 404);
 
-    await Enrollment.updateOne(
+    const result = await Enrollment.updateOne(
       { user_id: req.user.id, learning_path_id: id },
       { $setOnInsert: { user_id: req.user.id, learning_path_id: id } },
       { upsert: true }
     );
+
+    if (result.upsertedCount === 1) {
+      const enrollmentCount = await Enrollment.countDocuments({ user_id: req.user.id });
+      if (enrollmentCount === 1) await awardBadge(req.user.id, 'primeira_inscricao');
+    }
 
     return success(res, null, 'Inscrição realizada com sucesso');
   } catch (err) { next(err); }

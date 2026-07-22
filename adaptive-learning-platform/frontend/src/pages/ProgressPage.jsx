@@ -9,7 +9,6 @@ export default function ProgressPage() {
   const navigate                   = useNavigate()
   const [data,       setData]      = useState(null)
   const [loading,    setLoading]   = useState(true)
-  const [requesting, setRequesting]= useState(false)
   const [pathId,     setPathId]    = useState('')
 
   useEffect(() => {
@@ -18,17 +17,9 @@ export default function ProgressPage() {
       .finally(() => setLoading(false))
   }, [])
 
-  const requestTest = async () => {
+  const requestTest = () => {
     if (!pathId) return
-    setRequesting(true)
-    try {
-      const res = await api.post(`/plans/diagnostic/${pathId}/progress`)
-      if (res.data.data?.test?.id) {
-        navigate(`/diagnostic/${res.data.data.test.id}/result`)
-      }
-    } catch (err) {
-      alert(err.response?.data?.message || 'Erro ao solicitar avaliação')
-    } finally { setRequesting(false) }
+    navigate(`/progress-test/${pathId}`)
   }
 
   if (loading) return (
@@ -92,9 +83,9 @@ export default function ProgressPage() {
               <button
                 className="btn btn-primary"
                 onClick={requestTest}
-                disabled={!pathId || requesting}
+                disabled={!pathId}
               >
-                {requesting ? <div className="spinner" /> : 'Gerar Avaliação'}
+                Gerar Avaliação
               </button>
             </div>
           </div>

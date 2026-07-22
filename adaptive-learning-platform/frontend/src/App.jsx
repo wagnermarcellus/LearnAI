@@ -1,5 +1,5 @@
 import React from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import ProtectedRoute   from './components/common/ProtectedRoute'
 import Layout           from './components/common/Layout'
@@ -18,7 +18,7 @@ import AdminPathsPage         from './pages/AdminPathsPage'
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <AuthProvider>
         <Routes>
           <Route path="/login"    element={<LoginPage />} />
@@ -30,6 +30,7 @@ export default function App() {
             <Route path="learning-paths"            element={<LearningPathsPage />} />
             <Route path="learning-paths/:id"        element={<LearningPathDetailPage />} />
             <Route path="diagnostic/:pathId"        element={<DiagnosticTestPage />} />
+            <Route path="progress-test/:pathId"     element={<DiagnosticTestPage mode="progress" />} />
             <Route path="diagnostic/:testId/result" element={<DiagnosticResultPage />} />
             <Route path="study-plan"                element={<StudyPlanPage />} />
             <Route path="tutor"                     element={<AITutorPage />} />
@@ -47,6 +48,6 @@ export default function App() {
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </AuthProvider>
-    </BrowserRouter>
+    </HashRouter>
   )
 }
