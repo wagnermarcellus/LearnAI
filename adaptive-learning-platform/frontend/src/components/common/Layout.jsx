@@ -5,7 +5,7 @@ import { useAuth } from '../../context/AuthContext'
 const navItems = [
   { to: '/dashboard',      icon: '🏠', label: 'Dashboard'      },
   { to: '/learning-paths', icon: '📚', label: 'Trilhas'         },
-  { to: '/study-plan',     icon: '📋', label: 'Plano de Estudo' },
+  { to: '/study-plan',     icon: '📋', label: 'Plano de Estudo', studentOnly: true },
   { to: '/tutor',          icon: '🤖', label: 'Tutor IA'        },
   { to: '/progress',       icon: '📈', label: 'Progresso'       },
 ]
@@ -83,7 +83,9 @@ export default function Layout() {
         </div>
 
         <nav style={{ flex: 1, padding: '12px 8px', display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {navItems.map(item => <NavItem key={item.to} {...item} />)}
+          {navItems
+            .filter(item => !item.studentOnly || user?.role === 'student')
+            .map(item => <NavItem key={item.to} {...item} />)}
 
           {user?.role === 'admin' && (
             <>

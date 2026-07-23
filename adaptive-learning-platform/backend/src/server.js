@@ -42,6 +42,11 @@ app.get('/api/health', (_req, res) =>
   res.json({ status: 'ok', timestamp: new Date().toISOString() })
 );
 
+app.get('/', (_req, res) =>
+  res.json({ name: 'LearnAI API', status: 'ok', docs: '/api/health' })
+);
+app.get('/favicon.ico', (_req, res) => res.status(204).end());
+
 app.use((_req, res) =>
   res.status(404).json({ success: false, message: 'Rota não encontrada' })
 );

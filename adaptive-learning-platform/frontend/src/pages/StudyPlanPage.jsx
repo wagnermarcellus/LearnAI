@@ -14,7 +14,9 @@ export default function StudyPlanPage() {
     Promise.all([
       api.get('/study-plan').then(r => setPlans(r.data.data || [])),
       api.get('/plans/my-enrollments').then(r => setPaths(r.data.data || [])),
-    ]).finally(() => setLoading(false))
+    ])
+      .catch(() => setErrMsg('Erro ao carregar seus planos e trilhas'))
+      .finally(() => setLoading(false))
   }, [])
 
   const generate = async () => {

@@ -18,7 +18,7 @@ const connect = async () => {
       return;
     } catch (err) {
       if (attempt === MAX_RETRIES) throw err;
-      logger.error(`Falha ao conectar ao MongoDB (tentativa ${attempt}/${MAX_RETRIES})`, { message: err.message });
+      logger.warn(`Falha ao conectar ao MongoDB, tentando de novo (${attempt}/${MAX_RETRIES})`, { message: err.message });
       await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
     }
   }

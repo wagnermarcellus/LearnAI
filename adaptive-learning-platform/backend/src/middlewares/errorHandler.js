@@ -9,8 +9,7 @@ const errorHandler = (err, req, res, next) => {
   if (err.name === 'CastError') return error(res, 'Identificador inválido', 400);
   if (err.type === 'entity.parse.failed') return error(res, 'JSON inválido no corpo da requisição', 400);
 
-  const message = process.env.NODE_ENV === 'production' ? 'Erro interno do servidor' : err.message;
-  return error(res, message, err.statusCode || 500);
+  return error(res, 'Erro interno do servidor', err.statusCode || 500);
 };
 
 module.exports = errorHandler;
