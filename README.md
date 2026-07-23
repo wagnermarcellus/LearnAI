@@ -7,6 +7,5 @@ O código do projeto está em [`adaptive-learning-platform/`](adaptive-learning-
 documentação completa em [`adaptive-learning-platform/README.md`](adaptive-learning-platform/README.md).
 
 - **Demo:** https://wagnermarcellus.github.io/LearnAI/
-- **Como rodar localmente / instalação:** veja [adaptive-learning-platform/README.md](adaptive-learning-platform/README.md)
-- **Como publicar (deploy):** veja [DEPLOY.md](DEPLOY.md)
+
 - **Documentação da API:** [adaptive-learning-platform/docs/api.md](adaptive-learning-platform/docs/api.md)
