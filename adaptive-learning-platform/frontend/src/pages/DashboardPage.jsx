@@ -23,13 +23,17 @@ export default function DashboardPage() {
   const { user }              = useAuth()
   const [data, setData]       = useState(null)
   const [loading, setLoading] = useState(true)
+  const [errMsg, setErrMsg]   = useState('')
 
-  useEffect(() => {
+  const load = () => {
+    setLoading(true); setErrMsg('')
     api.get('/progress/overview')
       .then(r => setData(r.data.data))
-      .catch(() => {})
+      .catch(() => setErrMsg('Erro ao carregar seus dados. Tente novamente.'))
       .finally(() => setLoading(false))
-  }, [])
+  }
+
+  useEffect(load, [])
 
   const xp    = user?.xp || 0
   const level = Math.floor(xp / 100) + 1
@@ -62,6 +66,13 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {errMsg && (
+        <div className="alert alert-error" style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+          {errMsg}
+          <button className="btn btn-secondary btn-sm" onClick={load}>Tentar novamente</button>
+        </div>
+      )}
 
       <div className="grid-3" style={{ marginBottom: 32 }}>
         <StatCard icon="📚" label="Trilhas inscritas"  value={data?.enrollments?.length || 0} color="#6366f1" />
